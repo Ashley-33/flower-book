@@ -312,6 +312,35 @@
       font-size: 22px;
     }
 
+    /* Preset Person Buttons */
+    .preset-persons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--card-bg);
+      border-radius: 12px;
+    }
+
+    .preset-person-btn {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      color: #1565c0;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-person-btn:hover {
+      background: linear-gradient(135deg, #1565c0, #1976d2);
+      color: white;
+      transform: scale(1.05);
+    }
+
     /* Loading Overlay */
     .loading-overlay {
       position: fixed;
@@ -379,6 +408,7 @@
 
     <!-- Search by Person -->
     <div id="search-person" class="panel">
+      <div class="preset-persons" id="presetPersons"></div>
       <div class="search-box">
         <input type="text" id="personSearch" placeholder="输入人名搜索..." autocomplete="off">
       </div>
@@ -421,12 +451,46 @@
       document.getElementById('loadingOverlay').style.display = 'none';
     }
 
-    // 内嵌数据（静态版本）
-    function loadEmbeddedData() {
-      data = EMBEDDED_DATA;
-      document.getElementById('syncText').textContent = '静态数据';
+    // 从 GitHub Gist 加载数据（只读）
+    async function loadFromGist() {
+      try {
+        const response = await fetch(GIST_RAW_URL);
+        if (response.ok) {
+          const serverData = await response.json();
+          // 兼容旧数据：如果 flowers 是字符串数组，转为对象数组
+          if (serverData.flowers && serverData.flowers.length > 0) {
+            if (typeof serverData.flowers[0] === 'string') {
+              serverData.flowers = serverData.flowers.map(name => ({ name, score: 5 }));
+            }
+          }
+          data = serverData;
+          document.getElementById('syncText').textContent = '已同步';
+        } else {
+          throw new Error('Failed to fetch');
+        }
+      } catch (error) {
+        document.getElementById('syncText').textContent = '加载失败';
+        showToast('数据加载失败，请刷新重试');
+      }
       hideLoading();
       updateUI();
+      renderPresetPersons();
+    }
+
+    // 渲染预设人物按钮
+    function renderPresetPersons() {
+      const container = document.getElementById('presetPersons');
+      container.innerHTML = data.people.map(person => `
+        <button class="preset-person-btn" data-person="${person}">${person}</button>
+      `).join('');
+      
+      container.querySelectorAll('.preset-person-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const person = btn.dataset.person;
+          document.getElementById('personSearch').value = person;
+          document.getElementById('personSearch').dispatchEvent(new Event('input'));
+        });
+      });
     }
 
     // Tab 切换
