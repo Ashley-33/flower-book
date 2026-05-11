@@ -341,6 +341,41 @@
       transform: scale(1.05);
     }
 
+    /* Flower Table */
+    .flower-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .flower-table th {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .flower-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .flower-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .flower-table .score-cell {
+      font-weight: 600;
+      color: #ff9800;
+      width: 70px;
+    }
+
+    .flower-table .flower-cell {
+      color: var(--text);
+    }
+
     /* Loading Overlay */
     .loading-overlay {
       position: fixed;
@@ -451,10 +486,27 @@
       document.getElementById('loadingOverlay').style.display = 'none';
     }
 
-    // 内嵌数据（静态版本）
-    function loadEmbeddedData() {
-      data = EMBEDDED_DATA;
-      document.getElementById('syncText').textContent = '静态数据';
+    // 从 GitHub Gist 加载数据（只读）
+    async function loadFromGist() {
+      try {
+        const response = await fetch(GIST_RAW_URL);
+        if (response.ok) {
+          const serverData = await response.json();
+          // 兼容旧数据：如果 flowers 是字符串数组，转为对象数组
+          if (serverData.flowers && serverData.flowers.length > 0) {
+            if (typeof serverData.flowers[0] === 'string') {
+              serverData.flowers = serverData.flowers.map(name => ({ name, score: 5 }));
+            }
+          }
+          data = serverData;
+          document.getElementById('syncText').textContent = '已同步';
+        } else {
+          throw new Error('Failed to fetch');
+        }
+      } catch (error) {
+        document.getElementById('syncText').textContent = '加载失败';
+        showToast('数据加载失败，请刷新重试');
+      }
       hideLoading();
       updateUI();
       renderPresetPersons();
@@ -568,17 +620,37 @@
           .map(c => {
             const score = getFlowerScore(c.flower);
             return { name: c.flower, score: score };
+          })
+          .sort((a, b) => {
+            // 按分数从高到低排序，Null当作最低
+            const scoreA = a.score ?? -1;
+            const scoreB = b.score ?? -1;
+            return scoreB - scoreA;
           });
 
+        // 构建表格
         html += `
           <div class="result-card">
             <h3>👤 ${person}</h3>
-            <div class="tags">
-              ${flowerNames.length > 0 
-                ? flowerNames.map(f => `<span class="tag">${f.name}${f.score ? ' ⭐' + f.score : ''}</span>`).join('')
-                : '<span class="tag">暂无收藏</span>'
-              }
-            </div>
+            ${flowerNames.length > 0 
+              ? `<table class="flower-table">
+                  <thead>
+                    <tr>
+                      <th>分值</th>
+                      <th>花名</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${flowerNames.map(f => `
+                      <tr>
+                        <td class="score-cell">${f.score !== null ? f.score + '分' : 'Null'}</td>
+                        <td class="flower-cell">${f.name}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>`
+              : '<p style="color:var(--text-light)">暂无收藏</p>'
+            }
           </div>
         `;
       });
