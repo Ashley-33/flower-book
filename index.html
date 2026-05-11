@@ -418,12 +418,7 @@
   </div>
 
   <header class="header">
-    <h1>🌸 花名册</h1>
-    <p>花与人的收集游戏</p>
-    <div class="sync-status">
-      <span class="sync-dot synced"></span>
-      <span id="syncText">已同步</span>
-    </div>
+    <h1>🌸 花园世界</h1>
   </header>
 
   <nav class="tabs">
@@ -489,7 +484,6 @@
     // 加载内嵌数据（解决跨域问题）
     function loadEmbeddedData() {
       data = EMBEDDED_DATA;
-      document.getElementById('syncText').textContent = '静态数据';
       hideLoading();
       updateUI();
       renderPresetPersons();
