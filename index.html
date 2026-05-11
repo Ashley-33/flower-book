@@ -451,27 +451,10 @@
       document.getElementById('loadingOverlay').style.display = 'none';
     }
 
-    // 从 GitHub Gist 加载数据（只读）
-    async function loadFromGist() {
-      try {
-        const response = await fetch(GIST_RAW_URL);
-        if (response.ok) {
-          const serverData = await response.json();
-          // 兼容旧数据：如果 flowers 是字符串数组，转为对象数组
-          if (serverData.flowers && serverData.flowers.length > 0) {
-            if (typeof serverData.flowers[0] === 'string') {
-              serverData.flowers = serverData.flowers.map(name => ({ name, score: 5 }));
-            }
-          }
-          data = serverData;
-          document.getElementById('syncText').textContent = '已同步';
-        } else {
-          throw new Error('Failed to fetch');
-        }
-      } catch (error) {
-        document.getElementById('syncText').textContent = '加载失败';
-        showToast('数据加载失败，请刷新重试');
-      }
+    // 内嵌数据（静态版本）
+    function loadEmbeddedData() {
+      data = EMBEDDED_DATA;
+      document.getElementById('syncText').textContent = '静态数据';
       hideLoading();
       updateUI();
       renderPresetPersons();
