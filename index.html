@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>花名册 - 花与人的收集游戏</title>
+  <style>
+    :root {
+      --primary: #e91e63;
+      --primary-light: #fce4ec;
+      --primary-dark: #c2185b;
+      --bg: #fff5f8;
+      --card-bg: #ffffff;
+      --text: #333;
+      --text-light: #666;
+      --border: #f0e0e6;
+      --success: #4caf50;
+      --danger: #f44336;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 20px 16px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(233, 30, 99, 0.3);
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    /* Sync Status */
+    .sync-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      margin-top: 8px;
+      opacity: 0.9;
+    }
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ccc;
+    }
+
+    .sync-dot.synced { background: var(--success); }
+    .sync-dot.syncing { background: #ff9800; animation: pulse 1s infinite; }
+    .sync-dot.error { background: var(--danger); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--card-bg);
+      padding: 8px;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 8px;
+      border: none;
+      background: transparent;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .tab:hover:not(.active) {
+      background: var(--primary-light);
+    }
+
+    /* Content */
+    .content {
+      padding: 16px;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    /* Search Section */
+    .search-box {
+      margin-bottom: 16px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 16px;
+      background: var(--card-bg);
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .search-box input::placeholder {
+      color: #bbb;
+    }
+
+    /* Result Cards */
+    .result-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .result-card h3 {
+      font-size: 14px;
+      color: var(--primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .result-card .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .tag.person {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-light);
+    }
+
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    /* All Collections */
+    .collection-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .collection-item .info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .collection-item .person-name {
+      font-weight: 600;
+      color: #1565c0;
+    }
+
+    .collection-item .flower-name {
+      color: var(--primary-dark);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 14px;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-light);
+      text-decoration: none;
+      font-size: 11px;
+      padding: 4px 16px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    .nav-item .icon {
+      font-size: 22px;
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,245,248,0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .loading-overlay .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--primary-light);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-overlay p {
+      color: var(--text-light);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <p>加载数据中...</p>
+  </div>
+
+  <header class="header">
+    <h1>🌸 花名册</h1>
+    <p>花与人的收集游戏</p>
+    <div class="sync-status">
+      <span class="sync-dot synced"></span>
+      <span id="syncText">已同步</span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="search-flower">按花查人</button>
+    <button class="tab" data-tab="search-person">按人查花</button>
+    <button class="tab" data-tab="all">全部记录</button>
+  </nav>
+
+  <main class="content">
+    <!-- Search by Flower -->
+    <div id="search-flower" class="panel active">
+      <div class="search-box">
+        <input type="text" id="flowerSearch" placeholder="输入花名搜索..." autocomplete="off">
+      </div>
+      <div id="flowerResults"></div>
+    </div>
+
+    <!-- Search by Person -->
+    <div id="search-person" class="panel">
+      <div class="search-box">
+        <input type="text" id="personSearch" placeholder="输入人名搜索..." autocomplete="off">
+      </div>
+      <div id="personResults"></div>
+    </div>
+
+    <!-- All Collections -->
+    <div id="all" class="panel">
+      <p style="color:var(--text-light);font-size:13px;margin-bottom:16px;">👀 当前所有收藏记录（只读）</p>
+      <div id="allCollections"></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // GitHub Gist 配置（只读）
+    const GIST_RAW_URL = 'https://gist.githubusercontent.com/Ashley-33/967d6fea39f8104adfba75c401eef270/raw/flower-book-data.json';
+
+    // 数据
+    let data = {
+      flowers: [],
+      people: [],
+      collections: []
+    };
+
+    // 显示 toast
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // 隐藏加载
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+    }
+
+    // 从 GitHub Gist 加载数据（只读）
+    async function loadFromGist() {
+      try {
+        const response = await fetch(GIST_RAW_URL);
+        if (response.ok) {
+          data = await response.json();
+          document.getElementById('syncText').textContent = '已同步';
+        } else {
+          throw new Error('Failed to fetch');
+        }
+      } catch (error) {
+        document.getElementById('syncText').textContent = '加载失败';
+        showToast('数据加载失败，请刷新重试');
+      }
+      hideLoading();
+      updateUI();
+    }
+
+    // Tab 切换
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // 按花搜索
+    document.getElementById('flowerSearch').addEventListener('input', (e) => {
+      const query = e.target.value.trim().toLowerCase();
+      const results = document.getElementById('flowerResults');
+      
+      if (!query) {
+        results.innerHTML = '';
+        return;
+      }
+
+      const matchingFlowers = data.flowers.filter(f => f.toLowerCase().includes(query));
+      
+      if (matchingFlowers.length === 0) {
+        results.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">🌷</div>
+            <p>没有找到"${query}"相关的花</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      matchingFlowers.forEach(flower => {
+        const owners = data.collections
+          .filter(c => c.flower === flower)
+          .map(c => c.person);
+
+        html += `
+          <div class="result-card">
+            <h3>🌸 ${flower}</h3>
+            <div class="tags">
+              ${owners.length > 0 
+                ? owners.map(p => `<span class="tag person">${p}</span>`).join('')
+                : '<span class="tag">暂无人收藏</span>'
+              }
+            </div>
+          </div>
+        `;
+      });
+
+      results.innerHTML = html;
+    });
+
+    // 按人搜索
+    document.getElementById('personSearch').addEventListener('input', (e) => {
+      const query = e.target.value.trim().toLowerCase();
+      const results = document.getElementById('personResults');
+      
+      if (!query) {
+        results.innerHTML = '';
+        return;
+      }
+
+      const matchingPeople = data.people.filter(p => p.toLowerCase().includes(query));
+      
+      if (matchingPeople.length === 0) {
+        results.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">👤</div>
+            <p>没有找到"${query}"相关的人</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      matchingPeople.forEach(person => {
+        const flowers = data.collections
+          .filter(c => c.person === person)
+          .map(c => c.flower);
+
+        html += `
+          <div class="result-card">
+            <h3>👤 ${person}</h3>
+            <div class="tags">
+              ${flowers.length > 0 
+                ? flowers.map(f => `<span class="tag">${f}</span>`).join('')
+                : '<span class="tag">暂无收藏</span>'
+              }
+            </div>
+          </div>
+        `;
+      });
+
+      results.innerHTML = html;
+    });
+
+    // 更新 UI
+    function updateUI() {
+      document.getElementById('allCollections').innerHTML = data.collections.length
+        ? data.collections.map(c => `
+            <div class="collection-item">
+              <div class="info">
+                <span class="person-name">${c.person}</span>
+                <span class="arrow">🌸</span>
+                <span class="flower-name">${c.flower}</span>
+              </div>
+            </div>
+          `).join('')
+        : '<p style="color:var(--text-light);padding:10px;">暂无收藏记录</p>';
+    }
+
+    // 初始化
+    loadFromGist();
+  </script>
+</body>
+</html>
