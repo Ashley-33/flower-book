@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>花名册 - 花与人的收集游戏</title>
   <style>
     :root {
@@ -158,13 +161,32 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
+    .result-card .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
     .result-card h3 {
       font-size: 14px;
       color: var(--primary);
-      margin-bottom: 8px;
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+
+    .flower-score {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ff9800, #ff5722);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 12px;
+      min-width: 36px;
     }
 
     .result-card .tags {
@@ -182,9 +204,14 @@
       font-weight: 500;
     }
 
-    .tag.person {
+    .tag.person.group-in {
       background: #e3f2fd;
       color: #1565c0;
+    }
+
+    .tag.person.group-out {
+      background: #e8f5e9;
+      color: #2e7d32;
     }
 
     .empty-state {
@@ -213,7 +240,7 @@
     .collection-item .info {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .collection-item .person-name {
@@ -221,8 +248,29 @@
       color: #1565c0;
     }
 
+    .collection-item .person-name.group-in {
+      color: #1565c0;
+    }
+
+    .collection-item .person-name.group-out {
+      color: #2e7d32;
+    }
+
     .collection-item .flower-name {
       color: var(--primary-dark);
+    }
+
+    .collection-item .flower-score {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ff9800, #ff5722);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 10px;
+      min-width: 28px;
     }
 
     /* Toast */
@@ -280,6 +328,80 @@
       font-size: 22px;
     }
 
+    /* Preset Person Buttons */
+    .preset-persons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--card-bg);
+      border-radius: 12px;
+    }
+
+    .preset-person-btn {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      color: #1565c0;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-person-btn:hover {
+      background: linear-gradient(135deg, #1565c0, #1976d2);
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .preset-person-btn.group-out {
+      background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+      color: #2e7d32;
+    }
+
+    .preset-person-btn.group-out:hover {
+      background: linear-gradient(135deg, #2e7d32, #388e3c);
+      color: white;
+    }
+
+    /* Flower Table */
+    .flower-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .flower-table th {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .flower-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .flower-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .flower-table .score-cell {
+      font-weight: 600;
+      color: #ff9800;
+      width: 70px;
+    }
+
+    .flower-table .flower-cell {
+      color: var(--text);
+    }
+
     /* Loading Overlay */
     .loading-overlay {
       position: fixed;
@@ -323,11 +445,6 @@
 
   <header class="header">
     <h1>🌸 花名册</h1>
-    <p>花与人的收集游戏</p>
-    <div class="sync-status">
-      <span class="sync-dot synced"></span>
-      <span id="syncText">已同步</span>
-    </div>
   </header>
 
   <nav class="tabs">
@@ -347,6 +464,7 @@
 
     <!-- Search by Person -->
     <div id="search-person" class="panel">
+      <div class="preset-persons" id="presetPersons"></div>
       <div class="search-box">
         <input type="text" id="personSearch" placeholder="输入人名搜索..." autocomplete="off">
       </div>
@@ -363,6 +481,9 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    // 内嵌数据（解决跨域问题）
+    const EMBEDDED_DATA = {"flowers": [{"name": "云白垂丝茉莉", "score": 23}, {"name": "云紫茨菇", "score": 23}, {"name": "云锦芍药", "score": 23}, {"name": "仙女散花", "score": 25}, {"name": "伯利恒之星", "score": 23}, {"name": "冰蓝矮牵牛", "score": 21}, {"name": "冰蓝蝶舞玫瑰", "score": 25}, {"name": "夕岚薔薇花", "score": 23}, {"name": "奶桃大丽花", "score": 23}, {"name": "奶黄花毛茛", "score": 23}, {"name": "姑苏雨蒙", "score": 25}, {"name": "宝珠玉兰", "score": 25}, {"name": "幻紫铁线莲", "score": 23}, {"name": "幽蓝绿绒蒿", "score": 23}, {"name": "彤云六初花", "score": 23}, {"name": "明黄凌霄花", "score": 23}, {"name": "明黄松虫草", "score": 23}, {"name": "明黄跳舞兰", "score": 23}, {"name": "星河映蕊", "score": 28}, {"name": "星郎垂丝茉莉", "score": 23}, {"name": "晴蓝楼斗菜", "score": 23}, {"name": "暮山楼斗菜", "score": 23}, {"name": "曼珠沙华", "score": 23}, {"name": "曼陀罗华", "score": 23}, {"name": "朝晖姜荷花", "score": 23}, {"name": "朱柿长寿花", "score": 23}, {"name": "朱砂丹桂", "score": 23}, {"name": "杏绯德鸢", "score": 23}, {"name": "柔粉松虫草", "score": 23}, {"name": "柿柿如意", "score": 25}, {"name": "桃影浮澜", "score": 25}, {"name": "梦紫郁金香", "score": 23}, {"name": "棉花小熊", "score": 23}, {"name": "橘光朱顶红", "score": 23}, {"name": "橘霞华珊", "score": 21}, {"name": "橙黄虞美人", "score": 23}, {"name": "毛蕊紫银莲", "score": 23}, {"name": "波叶金桂", "score": 21}, {"name": "泼墨", "score": 23}, {"name": "浅绀紫藤花", "score": 23}, {"name": "浅韵美女樱", "score": 23}, {"name": "浅黄绿绒蒿", "score": 21}, {"name": "淡粉雪柳", "score": 23}, {"name": "澄蓝龙面花", "score": 23}, {"name": "火耀金丹", "score": 25}, {"name": "火蕊朱顶红", "score": 23}, {"name": "玉兰栖香", "score": 25}, {"name": "玫瑰小熊", "score": 5}, {"name": "玫瑰粉银莲", "score": 23}, {"name": "珊粉立金花", "score": 23}, {"name": "珠宝之心", "score": 25}, {"name": "琼台玉露", "score": 23}, {"name": "白茜剑兰", "score": 21}, {"name": "盈粉芍药", "score": 23}, {"name": "碧落夹竹桃", "score": 23}, {"name": "碧落月见草", "score": 23}, {"name": "福运招财", "score": 28}, {"name": "秋枫跳舞兰", "score": 23}, {"name": "粉樱月见草", "score": 23}, {"name": "粉樱蝶舞玫瑰", "score": 25}, {"name": "粉米露薇花", "score": 23}, {"name": "粉紫华珊", "score": 23}, {"name": "粉红木槿花", "score": 21}, {"name": "粉黛德鸢", "score": 23}, {"name": "素雪瑞香花", "score": 23}, {"name": "红香妃腊梅", "score": 25}, {"name": "纯白木香花", "score": 23}, {"name": "纸鸢探春", "score": 25}, {"name": "绀紫飞燕草", "score": 23}, {"name": "绯色腊梅", "score": 21}, {"name": "缃桃六初花", "score": 23}, {"name": "胭脂芍药", "score": 23}, {"name": "芋紫剑兰", "score": 23}, {"name": "花漾春山", "score": 28}, {"name": "花笼星语", "score": 25}, {"name": "莹白露薇花", "score": 23}, {"name": "落英浮香", "score": 25}, {"name": "葡萄紫牡丹菊", "score": 25}, {"name": "蓝叶苏铁", "score": 23}, {"name": "藕粉长寿花", "score": 23}, {"name": "藤黄露薇花", "score": 21}, {"name": "蜜合月见草", "score": 21}, {"name": "蜜粉龙面花", "score": 23}, {"name": "褐红铁筷子花", "score": 21}, {"name": "赤晖石竹花", "score": 23}, {"name": "赤焰火焰兰", "score": 23}, {"name": "轮生冬青", "score": 21}, {"name": "轻紫大花葱", "score": 21}, {"name": "轻紫格桑花", "score": 23}, {"name": "金橙海葵", "score": 23}, {"name": "金玉良缘", "score": 23}, {"name": "金白德鸢", "score": 21}, {"name": "金缠腰", "score": 25}, {"name": "银白雪柳", "score": 23}, {"name": "雾粉麦冬花", "score": 21}, {"name": "霜色麦冬花", "score": 5}, {"name": "青山银桂", "score": 21}, {"name": "青碧华珊", "score": 23}, {"name": "飞黄玉兰", "score": 23}, {"name": "香槟玫瑰", "score": 21}, {"name": "马上有福", "score": 25}, {"name": "鱼灯映岁", "score": 25}, {"name": "鸳鸯茉莉", "score": 21}, {"name": "鹅黄铁筷子花", "score": 23}, {"name": "黄焰", "score": 23}, {"name": "黑曜大丽花", "score": 21}, {"name": "黛紫绿绒蒿", "score": 23}, {"name": "黛紫虞美人", "score": 23}, {"name": "紫曜牡丹", "score": 25}, {"name": "幽蓝逐影", "score": 25}, {"name": "瑶光牡丹", "score": 25}, {"name": "晴山蔷薇花", "score": 23}, {"name": "柔兰飞燕草", "score": 23}, {"name": "桃夭飞燕草", "score": 23}, {"name": "甜橙美女樱", "score": 23}, {"name": "粉胭海棠花", "score": 21}, {"name": "烟粉格桑花", "score": 21}, {"name": "青花瓷牡丹菊", "score": 25}, {"name": "黄莺蔷薇花", "score": 23}, {"name": "夕岚蔷薇花", "score": 21}, {"name": "嫩翠大花萱草", "score": 23}, {"name": "焰绯海葵", "score": 21}, {"name": "白粉蕙兰", "score": 21}, {"name": "桃月", "score": 28}, {"name": "梦幻之心", "score": 28}, {"name": "欢云妙舞", "score": 28}, {"name": "仙魅灵狐", "score": 28}, {"name": "芳华寻蝶", "score": 28}, {"name": "繁花满筑", "score": 28}, {"name": "欢雪颂冬", "score": 28}, {"name": "甜绒羊羊", "score": 25}, {"name": "夜梦花庭", "score": 28}, {"name": "玉兔揽辉", "score": 25}, {"name": "飞花似梦", "score": 28}, {"name": "珠匣粉芙蓉", "score": 25}, {"name": "珠匣紫芙蓉", "score": 25}, {"name": "馥香花饼", "score": 25}, {"name": "灵睿仙桃", "score": 25}, {"name": "焰火迎春", "score": 30}, {"name": "紫霄云庭", "score": 30}, {"name": "幻雪颂冬", "score": 30}, {"name": "蝶影梅书", "score": 25}, {"name": "鸢花芳集", "score": 25}, {"name": "金鳞飞渡", "score": 30}, {"name": "杏月", "score": 28}, {"name": "柳月", "score": 28}, {"name": "梅月", "score": 28}, {"name": "葭月", "score": 28}, {"name": "阳月", "score": 28}], "people": [{"name": "六六", "group": "组内"}, {"name": "冯慕儿", "group": "组内"}, {"name": "小茉莉", "group": "组内"}, {"name": "小蔷薇", "group": "组内"}, {"name": "小铃兰", "group": "组内"}, {"name": "TT✨楚桐", "group": "组外"}, {"name": "小酒", "group": "组外"}, {"name": "褚师巧蕊", "group": "组外"}, {"name": "幽幽", "group": "组外"}, {"name": "喵咪", "group": "组外"}, {"name": "太史梦之", "group": "组外"}, {"name": "吕千雁", "group": "组外"}, {"name": "柚柚", "group": "组外"}, {"name": "薛嘉婷", "group": "组外"}, {"name": "陶丘莉芸", "group": "组外"}, {"name": "平安", "group": "组外"}, {"name": "闻影", "group": "组外"}, {"name": "啾啾", "group": "组外"}, {"name": "玫瑰", "group": "组外"}, {"name": "青青草原", "group": "组外"}, {"name": "游客", "group": "组外"}, {"name": "昆吾", "group": "组外"}, {"name": "玥糖", "group": "组外"}, {"name": "泡泡小淘气", "group": "组外"}, {"name": "綪緑", "group": "组外"}, {"name": "董梦蝶", "group": "组外"}, {"name": "北宫", "group": "组外"}, {"name": "紫鸢", "group": "组外"}, {"name": "云舒", "group": "组外"}, {"name": "超A葡萄", "group": "组外"}, {"name": "璇", "group": "组外"}], "collections": [{"person": "小蔷薇", "flower": "鱼灯映岁"}, {"person": "小蔷薇", "flower": "葡萄紫牡丹菊"}, {"person": "小蔷薇", "flower": "珠宝之心"}, {"person": "小蔷薇", "flower": "粉樱蝶舞玫瑰"}, {"person": "小蔷薇", "flower": "桃影浮澜"}, {"person": "小蔷薇", "flower": "素雪瑞香花"}, {"person": "小蔷薇", "flower": "珊粉立金花"}, {"person": "小蔷薇", "flower": "澄蓝龙面花"}, {"person": "小蔷薇", "flower": "秋枫跳舞兰"}, {"person": "小蔷薇", "flower": "银白雪柳"}, {"person": "小蔷薇", "flower": "胭脂芍药"}, {"person": "小蔷薇", "flower": "金橙海葵"}, {"person": "小蔷薇", "flower": "毛蕊紫银莲"}, {"person": "小蔷薇", "flower": "玫瑰粉银莲"}, {"person": "小蔷薇", "flower": "浅绀紫藤花"}, {"person": "小蔷薇", "flower": "青碧华珊"}, {"person": "小蔷薇", "flower": "伯利恒之星"}, {"person": "小蔷薇", "flower": "盈粉芍药"}, {"person": "小蔷薇", "flower": "棉花小熊"}, {"person": "小蔷薇", "flower": "轮生冬青"}, {"person": "小蔷薇", "flower": "黛紫虞美人"}, {"person": "小蔷薇", "flower": "橙黄虞美人"}, {"person": "小蔷薇", "flower": "粉黛德鸢"}, {"person": "小蔷薇", "flower": "粉红木槿花"}, {"person": "小蔷薇", "flower": "暮山楼斗菜"}, {"person": "小蔷薇", "flower": "彤云六初花"}, {"person": "小蔷薇", "flower": "冰蓝矮牵牛"}, {"person": "小蔷薇", "flower": "绯色腊梅"}, {"person": "小蔷薇", "flower": "曼珠沙华"}, {"person": "小蔷薇", "flower": "明黄凌霄花"}, {"person": "小蔷薇", "flower": "明黄松虫草"}, {"person": "小蔷薇", "flower": "梦紫郁金香"}, {"person": "小蔷薇", "flower": "蜜粉龙面花"}, {"person": "小蔷薇", "flower": "花漾春山"}, {"person": "小蔷薇", "flower": "云白垂丝茉莉"}, {"person": "小蔷薇", "flower": "花笼星语"}, {"person": "小蔷薇", "flower": "云紫茨菇"}, {"person": "小蔷薇", "flower": "赤晖石竹花"}, {"person": "小蔷薇", "flower": "星郎垂丝茉莉"}, {"person": "小蔷薇", "flower": "金玉良缘"}, {"person": "小蔷薇", "flower": "落英浮香"}, {"person": "小蔷薇", "flower": "玉兰栖香"}, {"person": "小蔷薇", "flower": "泼墨"}, {"person": "小蔷薇", "flower": "黄焰"}, {"person": "小蔷薇", "flower": "纸鸢探春"}, {"person": "六六", "flower": "星河映蕊"}, {"person": "六六", "flower": "宝珠玉兰"}, {"person": "六六", "flower": "冰蓝矮牵牛"}, {"person": "六六", "flower": "褐红铁筷子花"}, {"person": "六六", "flower": "浅黄绿绒蒿"}, {"person": "六六", "flower": "金橙海葵"}, {"person": "六六", "flower": "碧落月见草"}, {"person": "六六", "flower": "绯色腊梅"}, {"person": "六六", "flower": "香槟玫瑰"}, {"person": "六六", "flower": "鸳鸯茉莉"}, {"person": "六六", "flower": "赤焰火焰兰"}, {"person": "六六", "flower": "金白德鸢"}, {"person": "六六", "flower": "波叶金桂"}, {"person": "六六", "flower": "橘霞华珊"}, {"person": "六六", "flower": "棉花小熊"}, {"person": "六六", "flower": "轮生冬青"}, {"person": "六六", "flower": "粉红木槿花"}, {"person": "六六", "flower": "梦紫郁金香"}, {"person": "六六", "flower": "珠宝之心"}, {"person": "六六", "flower": "落英浮香"}, {"person": "六六", "flower": "泼墨"}, {"person": "六六", "flower": "黄焰"}, {"person": "小铃兰", "flower": "梦紫郁金香"}, {"person": "小铃兰", "flower": "星河映蕊"}, {"person": "小铃兰", "flower": "红香妃腊梅"}, {"person": "小铃兰", "flower": "仙女散花"}, {"person": "小铃兰", "flower": "姑苏雨蒙"}, {"person": "小铃兰", "flower": "金缠腰"}, {"person": "小铃兰", "flower": "冰蓝矮牵牛"}, {"person": "小铃兰", "flower": "碧落月见草"}, {"person": "小铃兰", "flower": "绯色腊梅"}, {"person": "小铃兰", "flower": "棉花小熊"}, {"person": "小铃兰", "flower": "轮生冬青"}, {"person": "小铃兰", "flower": "粉红木槿花"}, {"person": "小铃兰", "flower": "香槟玫瑰"}, {"person": "小铃兰", "flower": "曼珠沙华"}, {"person": "小铃兰", "flower": "浅绀紫藤花"}, {"person": "小铃兰", "flower": "伯利恒之星"}, {"person": "小铃兰", "flower": "黑曜大丽花"}, {"person": "小铃兰", "flower": "青山银桂"}, {"person": "小铃兰", "flower": "幻紫铁线莲"}, {"person": "小铃兰", "flower": "浅韵美女樱"}, {"person": "小铃兰", "flower": "杏绯德鸢"}, {"person": "小铃兰", "flower": "飞黄玉兰"}, {"person": "小铃兰", "flower": "藕粉长寿花"}, {"person": "小铃兰", "flower": "粉米露薇花"}, {"person": "小铃兰", "flower": "纯白木香花"}, {"person": "小铃兰", "flower": "暮山楼斗菜"}, {"person": "小铃兰", "flower": "晴蓝楼斗菜"}, {"person": "小铃兰", "flower": "朝晖姜荷花"}, {"person": "小铃兰", "flower": "明黄凌霄花"}, {"person": "小铃兰", "flower": "明黄松虫草"}, {"person": "小铃兰", "flower": "淡粉雪柳"}, {"person": "小铃兰", "flower": "黛紫绿绒蒿"}, {"person": "小铃兰", "flower": "火蕊朱顶红"}, {"person": "小铃兰", "flower": "橘光朱顶红"}, {"person": "小铃兰", "flower": "云锦芍药"}, {"person": "小铃兰", "flower": "盈粉芍药"}, {"person": "小铃兰", "flower": "金玉良缘"}, {"person": "小铃兰", "flower": "缃桃六初花"}, {"person": "小铃兰", "flower": "落英浮香"}, {"person": "小铃兰", "flower": "玉兰栖香"}, {"person": "小铃兰", "flower": "泼墨"}, {"person": "小铃兰", "flower": "黄焰"}, {"person": "小铃兰", "flower": "珠宝之心"}, {"person": "小铃兰", "flower": "纸鸢探春"}, {"person": "冯慕儿", "flower": "星河映蕊"}, {"person": "冯慕儿", "flower": "福运招财"}, {"person": "冯慕儿", "flower": "宝珠玉兰"}, {"person": "冯慕儿", "flower": "琼台玉露"}, {"person": "冯慕儿", "flower": "金缠腰"}, {"person": "冯慕儿", "flower": "玫瑰小熊"}, {"person": "冯慕儿", "flower": "柿柿如意"}, {"person": "冯慕儿", "flower": "珠宝之心"}, {"person": "冯慕儿", "flower": "马上有福"}, {"person": "冯慕儿", "flower": "粉红木槿花"}, {"person": "冯慕儿", "flower": "柔粉松虫草"}, {"person": "冯慕儿", "flower": "梦紫郁金香"}, {"person": "冯慕儿", "flower": "奶黄花毛茛"}, {"person": "冯慕儿", "flower": "冰蓝矮牵牛"}, {"person": "冯慕儿", "flower": "粉樱月见草"}, {"person": "冯慕儿", "flower": "碧落月见草"}, {"person": "冯慕儿", "flower": "绯色腊梅"}, {"person": "冯慕儿", "flower": "香槟玫瑰"}, {"person": "冯慕儿", "flower": "伯利恒之星"}, {"person": "冯慕儿", "flower": "蜜合月见草"}, {"person": "冯慕儿", "flower": "金白德鸢"}, {"person": "冯慕儿", "flower": "鹅黄铁筷子花"}, {"person": "冯慕儿", "flower": "雾粉麦冬花"}, {"person": "冯慕儿", "flower": "藤黄露薇花"}, {"person": "冯慕儿", "flower": "幽蓝绿绒蒿"}, {"person": "冯慕儿", "flower": "粉紫华珊"}, {"person": "冯慕儿", "flower": "玫瑰粉银莲"}, {"person": "冯慕儿", "flower": "白茜剑兰"}, {"person": "冯慕儿", "flower": "棉花小熊"}, {"person": "冯慕儿", "flower": "轮生冬青"}, {"person": "冯慕儿", "flower": "落英浮香"}, {"person": "冯慕儿", "flower": "泼墨"}, {"person": "冯慕儿", "flower": "黄焰"}, {"person": "小茉莉", "flower": "星河映蕊"}, {"person": "小茉莉", "flower": "福运招财"}, {"person": "小茉莉", "flower": "宝珠玉兰"}, {"person": "小茉莉", "flower": "冰蓝蝶舞玫瑰"}, {"person": "小茉莉", "flower": "粉樱蝶舞玫瑰"}, {"person": "小茉莉", "flower": "火耀金丹"}, {"person": "小茉莉", "flower": "琼台玉露"}, {"person": "小茉莉", "flower": "金缠腰"}, {"person": "小茉莉", "flower": "玫瑰小熊"}, {"person": "小茉莉", "flower": "马上有福"}, {"person": "小茉莉", "flower": "柿柿如意"}, {"person": "小茉莉", "flower": "珠宝之心"}, {"person": "小茉莉", "flower": "冰蓝矮牵牛"}, {"person": "小茉莉", "flower": "粉樱月见草"}, {"person": "小茉莉", "flower": "碧落月见草"}, {"person": "小茉莉", "flower": "绯色腊梅"}, {"person": "小茉莉", "flower": "香槟玫瑰"}, {"person": "小茉莉", "flower": "伯利恒之星"}, {"person": "小茉莉", "flower": "绀紫飞燕草"}, {"person": "小茉莉", "flower": "轻紫大花葱"}, {"person": "小茉莉", "flower": "蓝叶苏铁"}, {"person": "小茉莉", "flower": "金白德鸢"}, {"person": "小茉莉", "flower": "朱柿长寿花"}, {"person": "小茉莉", "flower": "莹白露薇花"}, {"person": "小茉莉", "flower": "奶桃大丽花"}, {"person": "小茉莉", "flower": "明黄跳舞兰"}, {"person": "小茉莉", "flower": "白粉蕙兰"}, {"person": "小茉莉", "flower": "橙黄虞美人"}, {"person": "小茉莉", "flower": "粉黛德鸢"}, {"person": "小茉莉", "flower": "霜色麦冬花"}, {"person": "小茉莉", "flower": "轻紫格桑花"}, {"person": "小茉莉", "flower": "银白雪柳"}, {"person": "小茉莉", "flower": "碧落夹竹桃"}, {"person": "小茉莉", "flower": "幽蓝绿绒蒿"}, {"person": "小茉莉", "flower": "曼陀罗华"}, {"person": "小茉莉", "flower": "朱砂丹桂"}, {"person": "小茉莉", "flower": "胭脂芍药"}, {"person": "小茉莉", "flower": "夕岚薔薇花"}, {"person": "小茉莉", "flower": "芋紫剑兰"}, {"person": "小茉莉", "flower": "棉花小熊"}, {"person": "小茉莉", "flower": "轮生冬青"}, {"person": "小茉莉", "flower": "粉红木槿花"}, {"person": "小茉莉", "flower": "梦紫郁金香"}, {"person": "小茉莉", "flower": "花漾春山"}, {"person": "小茉莉", "flower": "落英浮香"}, {"person": "小茉莉", "flower": "泼墨"}, {"person": "小茉莉", "flower": "黄焰"}, {"person": "小茉莉", "flower": "纸鸢探春"}, {"person": "小蔷薇", "flower": "紫曜牡丹"}, {"person": "小蔷薇", "flower": "幽蓝逐影"}, {"person": "小蔷薇", "flower": "瑶光牡丹"}, {"person": "小蔷薇", "flower": "晴山蔷薇花"}, {"person": "小蔷薇", "flower": "柔兰飞燕草"}, {"person": "小蔷薇", "flower": "桃夭飞燕草"}, {"person": "小蔷薇", "flower": "甜橙美女樱"}, {"person": "小蔷薇", "flower": "粉胭海棠花"}, {"person": "小蔷薇", "flower": "烟粉格桑花"}, {"person": "小蔷薇", "flower": "青花瓷牡丹菊"}, {"person": "小蔷薇", "flower": "黄莺蔷薇花"}, {"person": "小蔷薇", "flower": "夕岚蔷薇花"}, {"person": "小蔷薇", "flower": "嫩翠大花萱草"}, {"person": "小蔷薇", "flower": "宝珠玉兰"}, {"person": "六六", "flower": "胭脂芍药"}, {"person": "六六", "flower": "黑曜大丽花"}, {"person": "六六", "flower": "焰绯海葵"}, {"person": "小茉莉", "flower": "白粉蕙兰"}, {"person": "TT✨楚桐", "flower": "桃月"}, {"person": "TT✨楚桐", "flower": "梦幻之心"}, {"person": "TT✨楚桐", "flower": "欢云妙舞"}, {"person": "TT✨楚桐", "flower": "仙魅灵狐"}, {"person": "小酒", "flower": "芳华寻蝶"}, {"person": "小酒", "flower": "繁花满筑"}, {"person": "小酒", "flower": "欢雪颂冬"}, {"person": "褚师巧蕊", "flower": "宝珠玉兰"}, {"person": "褚师巧蕊", "flower": "甜绒羊羊"}, {"person": "褚师巧蕊", "flower": "花笼星语"}, {"person": "褚师巧蕊", "flower": "落英浮香"}, {"person": "幽幽", "flower": "桃月"}, {"person": "幽幽", "flower": "欢云妙舞"}, {"person": "幽幽", "flower": "福运招财"}, {"person": "幽幽", "flower": "夜梦花庭"}, {"person": "喵咪", "flower": "福运招财"}, {"person": "喵咪", "flower": "玉兔揽辉"}, {"person": "喵咪", "flower": "花漾春山"}, {"person": "喵咪", "flower": "粉樱蝶舞玫瑰"}, {"person": "喵咪", "flower": "玫瑰小熊"}, {"person": "喵咪", "flower": "葡萄紫牡丹菊"}, {"person": "太史梦之", "flower": "飞花似梦"}, {"person": "太史梦之", "flower": "欢云妙舞"}, {"person": "太史梦之", "flower": "鱼灯映岁"}, {"person": "太史梦之", "flower": "珠宝之心"}, {"person": "太史梦之", "flower": "星河映蕊"}, {"person": "吕千雁", "flower": "火耀金丹"}, {"person": "吕千雁", "flower": "琼台玉露"}, {"person": "吕千雁", "flower": "金缠腰"}, {"person": "吕千雁", "flower": "马上有福"}, {"person": "吕千雁", "flower": "珠宝之心"}, {"person": "吕千雁", "flower": "落英浮香"}, {"person": "柚柚", "flower": "星河映蕊"}, {"person": "柚柚", "flower": "花漾春山"}, {"person": "柚柚", "flower": "泼墨"}, {"person": "柚柚", "flower": "黄焰"}, {"person": "薛嘉婷", "flower": "珠匣粉芙蓉"}, {"person": "薛嘉婷", "flower": "珠匣紫芙蓉"}, {"person": "薛嘉婷", "flower": "桃月"}, {"person": "薛嘉婷", "flower": "馥香花饼"}, {"person": "陶丘莉芸", "flower": "星河映蕊"}, {"person": "陶丘莉芸", "flower": "花漾春山"}, {"person": "陶丘莉芸", "flower": "纸鸢探春"}, {"person": "陶丘莉芸", "flower": "宝珠玉兰"}, {"person": "陶丘莉芸", "flower": "珠宝之心"}, {"person": "陶丘莉芸", "flower": "马上有福"}, {"person": "平安", "flower": "灵睿仙桃"}, {"person": "平安", "flower": "落英浮香"}, {"person": "平安", "flower": "琼台玉露"}, {"person": "平安", "flower": "金缠腰"}, {"person": "平安", "flower": "珠宝之心"}, {"person": "平安", "flower": "柿柿如意"}, {"person": "闻影", "flower": "花漾春山"}, {"person": "闻影", "flower": "纸鸢探春"}, {"person": "闻影", "flower": "宝珠玉兰"}, {"person": "闻影", "flower": "马上有福"}, {"person": "闻影", "flower": "珠宝之心"}, {"person": "闻影", "flower": "馥香花饼"}, {"person": "闻影", "flower": "金缠腰"}, {"person": "闻影", "flower": "落英浮香"}, {"person": "啾啾", "flower": "焰火迎春"}, {"person": "啾啾", "flower": "紫霄云庭"}, {"person": "玫瑰", "flower": "夜梦花庭"}, {"person": "玫瑰", "flower": "星河映蕊"}, {"person": "玫瑰", "flower": "绯色腊梅"}, {"person": "玫瑰", "flower": "紫曜牡丹"}, {"person": "玫瑰", "flower": "粉樱蝶舞玫瑰"}, {"person": "青青草原", "flower": "珠宝之心"}, {"person": "青青草原", "flower": "落英浮香"}, {"person": "青青草原", "flower": "棉花小熊"}, {"person": "青青草原", "flower": "胭脂芍药"}, {"person": "游客", "flower": "夜梦花庭"}, {"person": "游客", "flower": "星河映蕊"}, {"person": "游客", "flower": "幻雪颂冬"}, {"person": "游客", "flower": "福运招财"}, {"person": "游客", "flower": "花漾春山"}, {"person": "昆吾", "flower": "星河映蕊"}, {"person": "昆吾", "flower": "花漾春山"}, {"person": "昆吾", "flower": "宝珠玉兰"}, {"person": "昆吾", "flower": "香槟玫瑰"}, {"person": "昆吾", "flower": "红香妃腊梅"}, {"person": "昆吾", "flower": "珠匣紫芙蓉"}, {"person": "昆吾", "flower": "火耀金丹"}, {"person": "昆吾", "flower": "琼台玉露"}, {"person": "昆吾", "flower": "蝶影梅书"}, {"person": "昆吾", "flower": "鸢花芳集"}, {"person": "昆吾", "flower": "金缠腰"}, {"person": "昆吾", "flower": "纸鸢探春"}, {"person": "昆吾", "flower": "落英浮香"}, {"person": "玥糖", "flower": "金鳞飞渡"}, {"person": "玥糖", "flower": "焰火迎春"}, {"person": "玥糖", "flower": "紫霄云庭"}, {"person": "泡泡小淘气", "flower": "珠宝之心"}, {"person": "泡泡小淘气", "flower": "棉花小熊"}, {"person": "泡泡小淘气", "flower": "胭脂芍药"}, {"person": "泡泡小淘气", "flower": "蓝叶苏铁"}, {"person": "綪緑", "flower": "紫霄云庭"}, {"person": "綪緑", "flower": "桃月"}, {"person": "綪緑", "flower": "杏月"}, {"person": "綪緑", "flower": "柳月"}, {"person": "綪緑", "flower": "梅月"}, {"person": "綪緑", "flower": "葭月"}, {"person": "綪緑", "flower": "阳月"}, {"person": "董梦蝶", "flower": "珠宝之心"}, {"person": "董梦蝶", "flower": "棉花小熊"}, {"person": "董梦蝶", "flower": "胭脂芍药"}, {"person": "董梦蝶", "flower": "冰蓝矮牵牛"}, {"person": "董梦蝶", "flower": "红香妃腊梅"}, {"person": "董梦蝶", "flower": "轻紫大花葱"}, {"person": "董梦蝶", "flower": "黑曜大丽花"}, {"person": "董梦蝶", "flower": "鸳鸯茉莉"}, {"person": "董梦蝶", "flower": "粉红木槿花"}, {"person": "董梦蝶", "flower": "轮生冬青"}, {"person": "董梦蝶", "flower": "梦紫郁金香"}, {"person": "董梦蝶", "flower": "黄焰"}, {"person": "董梦蝶", "flower": "泼墨"}, {"person": "北宫", "flower": "紫霄云庭"}, {"person": "北宫", "flower": "仙魅灵狐"}, {"person": "北宫", "flower": "玉兔揽辉"}, {"person": "北宫", "flower": "欢云妙舞"}, {"person": "北宫", "flower": "福运招财"}, {"person": "北宫", "flower": "梅月"}, {"person": "北宫", "flower": "柳月"}, {"person": "北宫", "flower": "星河映蕊"}, {"person": "紫鸢", "flower": "紫霄云庭"}, {"person": "紫鸢", "flower": "仙魅灵狐"}, {"person": "紫鸢", "flower": "梅月"}, {"person": "紫鸢", "flower": "柳月"}, {"person": "紫鸢", "flower": "杏月"}, {"person": "云舒", "flower": "星河映蕊"}, {"person": "云舒", "flower": "宝珠玉兰"}, {"person": "云舒", "flower": "火耀金丹"}, {"person": "云舒", "flower": "琼台玉露"}, {"person": "云舒", "flower": "金缠腰"}, {"person": "云舒", "flower": "马上有福"}, {"person": "云舒", "flower": "柿柿如意"}, {"person": "云舒", "flower": "珠宝之心"}, {"person": "云舒", "flower": "落英浮香"}, {"person": "云舒", "flower": "梦紫郁金香"}, {"person": "云舒", "flower": "胭脂芍药"}, {"person": "云舒", "flower": "伯利恒之星"}, {"person": "云舒", "flower": "浅绀紫藤花"}, {"person": "云舒", "flower": "奶黄花毛茛"}, {"person": "云舒", "flower": "晴蓝楼斗菜"}, {"person": "云舒", "flower": "黄焰"}, {"person": "云舒", "flower": "泼墨"}, {"person": "超A葡萄", "flower": "幻紫铁线莲"}, {"person": "璇", "flower": "紫霄云庭"}, {"person": "璇", "flower": "桃月"}, {"person": "璇", "flower": "杏月"}, {"person": "璇", "flower": "柳月"}, {"person": "璇", "flower": "梅月"}, {"person": "璇", "flower": "葭月"}, {"person": "璇", "flower": "阳月"}]};
+
     // GitHub Gist 配置（只读）
     const GIST_RAW_URL = 'https://gist.githubusercontent.com/Ashley-33/967d6fea39f8104adfba75c401eef270/raw/flower-book-data.json';
 
@@ -386,12 +507,27 @@
       document.getElementById('loadingOverlay').style.display = 'none';
     }
 
-    // 从 GitHub Gist 加载数据（只读）
+    // 加载内嵌数据（解决跨域问题）
+    function loadEmbeddedData() {
+      data = EMBEDDED_DATA;
+      hideLoading();
+      updateUI();
+      renderPresetPersons();
+    }
+
+    // 从 GitHub Gist 加载数据（备用方案）
     async function loadFromGist() {
       try {
         const response = await fetch(GIST_RAW_URL);
         if (response.ok) {
-          data = await response.json();
+          const serverData = await response.json();
+          // 兼容旧数据：如果 flowers 是字符串数组，转为对象数组
+          if (serverData.flowers && serverData.flowers.length > 0) {
+            if (typeof serverData.flowers[0] === 'string') {
+              serverData.flowers = serverData.flowers.map(name => ({ name, score: 5 }));
+            }
+          }
+          data = serverData;
           document.getElementById('syncText').textContent = '已同步';
         } else {
           throw new Error('Failed to fetch');
@@ -402,6 +538,29 @@
       }
       hideLoading();
       updateUI();
+      renderPresetPersons();
+    }
+
+    // 渲染预设人物按钮
+    function renderPresetPersons() {
+      const container = document.getElementById('presetPersons');
+      // 按组排序：组内在前，组外在后
+      const sorted = [...data.people].sort((a, b) => {
+        if (a.group === '组内' && b.group !== '组内') return -1;
+        if (a.group !== '组内' && b.group === '组内') return 1;
+        return 0;
+      });
+      container.innerHTML = sorted.map(person => `
+        <button class="preset-person-btn${person.group === '组外' ? ' group-out' : ''}" data-person="${person.name}">${person.name}</button>
+      `).join('');
+      
+      container.querySelectorAll('.preset-person-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const person = btn.dataset.person;
+          document.getElementById('personSearch').value = person;
+          document.getElementById('personSearch').dispatchEvent(new Event('input'));
+        });
+      });
     }
 
     // Tab 切换
@@ -414,6 +573,18 @@
       });
     });
 
+    // 获取花朵分值
+    function getFlowerScore(flowerName) {
+      const flowerObj = data.flowers.find(f => f.name === flowerName);
+      return flowerObj ? flowerObj.score : null;
+    }
+
+    // 获取用户组别
+    function getPersonGroup(personName) {
+      const person = data.people.find(p => p.name === personName);
+      return person ? person.group : null;
+    }
+
     // 按花搜索
     document.getElementById('flowerSearch').addEventListener('input', (e) => {
       const query = e.target.value.trim().toLowerCase();
@@ -424,7 +595,7 @@
         return;
       }
 
-      const matchingFlowers = data.flowers.filter(f => f.toLowerCase().includes(query));
+      const matchingFlowers = data.flowers.filter(f => f.name.toLowerCase().includes(query));
       
       if (matchingFlowers.length === 0) {
         results.innerHTML = `
@@ -439,15 +610,22 @@
       let html = '';
       matchingFlowers.forEach(flower => {
         const owners = data.collections
-          .filter(c => c.flower === flower)
+          .filter(c => c.flower === flower.name)
           .map(c => c.person);
 
         html += `
           <div class="result-card">
-            <h3>🌸 ${flower}</h3>
+            <div class="card-header">
+              <h3>🌸 ${flower.name}</h3>
+              <span class="flower-score">${flower.score}分</span>
+            </div>
             <div class="tags">
-              ${owners.length > 0 
-                ? owners.map(p => `<span class="tag person">${p}</span>`).join('')
+              ${owners.length > 0
+                ? owners.map(p => {
+                    const group = getPersonGroup(p);
+                    const groupClass = group === '组外' ? 'group-out' : 'group-in';
+                    return `<span class="tag person ${groupClass}">${p}</span>`;
+                  }).join('')
                 : '<span class="tag">暂无人收藏</span>'
               }
             </div>
@@ -468,7 +646,7 @@
         return;
       }
 
-      const matchingPeople = data.people.filter(p => p.toLowerCase().includes(query));
+      const matchingPeople = data.people.filter(p => p.name.toLowerCase().includes(query));
       
       if (matchingPeople.length === 0) {
         results.innerHTML = `
@@ -482,19 +660,42 @@
 
       let html = '';
       matchingPeople.forEach(person => {
-        const flowers = data.collections
-          .filter(c => c.person === person)
-          .map(c => c.flower);
+        const flowerNames = data.collections
+          .filter(c => c.person === person.name)
+          .map(c => {
+            const score = getFlowerScore(c.flower);
+            return { name: c.flower, score: score };
+          })
+          .sort((a, b) => {
+            // 按分数从高到低排序，Null当作最低
+            const scoreA = a.score ?? -1;
+            const scoreB = b.score ?? -1;
+            return scoreB - scoreA;
+          });
 
+        // 构建表格
         html += `
           <div class="result-card">
-            <h3>👤 ${person}</h3>
-            <div class="tags">
-              ${flowers.length > 0 
-                ? flowers.map(f => `<span class="tag">${f}</span>`).join('')
-                : '<span class="tag">暂无收藏</span>'
-              }
-            </div>
+            <h3>👤 ${person.name}</h3>
+            ${flowerNames.length > 0 
+              ? `<table class="flower-table">
+                  <thead>
+                    <tr>
+                      <th>分值</th>
+                      <th>花名</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${flowerNames.map(f => `
+                      <tr>
+                        <td class="score-cell">${f.score !== null ? f.score + '分' : 'Null'}</td>
+                        <td class="flower-cell">${f.name}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>`
+              : '<p style="color:var(--text-light)">暂无收藏</p>'
+            }
           </div>
         `;
       });
@@ -505,20 +706,25 @@
     // 更新 UI
     function updateUI() {
       document.getElementById('allCollections').innerHTML = data.collections.length
-        ? data.collections.map(c => `
+        ? data.collections.map(c => {
+            const score = getFlowerScore(c.flower);
+            const personGroup = getPersonGroup(c.person);
+            const groupClass = personGroup === '组外' ? 'group-out' : 'group-in';
+            return `
             <div class="collection-item">
               <div class="info">
-                <span class="person-name">${c.person}</span>
+                <span class="person-name ${groupClass}">${c.person}</span>
                 <span class="arrow">🌸</span>
                 <span class="flower-name">${c.flower}</span>
+                ${score ? `<span class="flower-score">${score}分</span>` : ''}
               </div>
             </div>
-          `).join('')
+          `}).join('')
         : '<p style="color:var(--text-light);padding:10px;">暂无收藏记录</p>';
     }
 
     // 初始化
-    loadFromGist();
+    loadEmbeddedData();
   </script>
 </body>
 </html>
