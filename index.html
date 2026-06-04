@@ -214,6 +214,26 @@
       color: #2e7d32;
     }
 
+    .flower-tag {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      margin-left: 6px;
+      vertical-align: middle;
+      font-weight: 500;
+    }
+
+    .flower-tag.unique {
+      background: #fff3e0;
+      color: #e65100;
+    }
+
+    .flower-tag.inner-unique {
+      background: #e8eaf6;
+      color: #283593;
+    }
+
     .empty-state {
       text-align: center;
       padding: 40px 20px;
@@ -658,13 +678,31 @@
         return;
       }
 
+      // 预计算：每朵花的收藏者列表
+      const flowerOwners = {};
+      data.collections.forEach(c => {
+        if (!flowerOwners[c.flower]) flowerOwners[c.flower] = [];
+        flowerOwners[c.flower].push(c.person);
+      });
+      // 预计算：每个收藏者的分组
+      const personGroupMap = {};
+      data.people.forEach(p => { personGroupMap[p.name] = p.group; });
+
       let html = '';
       matchingPeople.forEach(person => {
         const flowerNames = data.collections
           .filter(c => c.person === person.name)
           .map(c => {
             const score = getFlowerScore(c.flower);
-            return { name: c.flower, score: score };
+            // 判断独有标签
+            const owners = flowerOwners[c.flower] || [];
+            const isUnique = owners.length === 1;
+            const innerOwners = owners.filter(o => personGroupMap[o] === '组内');
+            const isInnerUnique = !isUnique && owners.length > 1 && innerOwners.length === owners.length;
+            let tag = '';
+            if (isUnique) tag = 'unique';
+            else if (isInnerUnique) tag = 'inner-unique';
+            return { name: c.flower, score: score, tag: tag };
           })
           .sort((a, b) => {
             // 按分数从高到低排序，Null当作最低
@@ -689,7 +727,7 @@
                     ${flowerNames.map(f => `
                       <tr>
                         <td class="score-cell">${f.score !== null ? f.score + '分' : 'Null'}</td>
-                        <td class="flower-cell">${f.name}</td>
+                        <td class="flower-cell">${f.name}${f.tag === 'unique' ? '<span class="flower-tag unique">独有</span>' : ''}${f.tag === 'inner-unique' ? '<span class="flower-tag inner-unique">组内独有</span>' : ''}</td>
                       </tr>
                     `).join('')}
                   </tbody>
