@@ -394,12 +394,26 @@
       margin-top: 12px;
     }
 
+    .flower-table thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
     .flower-table th {
       background: var(--primary-light);
       color: var(--primary-dark);
       padding: 10px 12px;
       text-align: left;
       font-size: 13px;
+    }
+
+    .flower-table th.person-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      font-size: 16px;
+      padding: 12px;
+      text-align: center;
     }
 
     .flower-table td {
@@ -715,10 +729,12 @@
         // 构建表格
         html += `
           <div class="result-card">
-            <h3>👤 ${person.name}</h3>
-            ${flowerNames.length > 0 
+            ${flowerNames.length > 0
               ? `<table class="flower-table">
                   <thead>
+                    <tr>
+                      <th class="person-header" colspan="2">👤 ${person.name}</th>
+                    </tr>
                     <tr>
                       <th>分值</th>
                       <th>花名</th>
@@ -733,7 +749,7 @@
                     `).join('')}
                   </tbody>
                 </table>`
-              : '<p style="color:var(--text-light)">暂无收藏</p>'
+              : '<h3>👤 ${person.name}</h3><p style="color:var(--text-light)">暂无收藏</p>'
             }
           </div>
         `;
