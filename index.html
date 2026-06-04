@@ -697,8 +697,9 @@
             // 判断独有标签
             const owners = flowerOwners[c.flower] || [];
             const isUnique = owners.length === 1;
-            const innerOwners = owners.filter(o => personGroupMap[o] === '组内');
-            const isInnerUnique = !isUnique && owners.length > 1 && innerOwners.length === owners.length;
+            // 组内独有：在组内人中只有当前人有这朵花（组外可能也有）
+            const isInnerUnique = !isUnique && personGroupMap[person.name] === '组内'
+              && owners.filter(o => personGroupMap[o] === '组内').length === 1 && owners.includes(person.name);
             let tag = '';
             if (isUnique) tag = 'unique';
             else if (isInnerUnique) tag = 'inner-unique';
