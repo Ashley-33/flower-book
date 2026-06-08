@@ -7,6 +7,17 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>花名册 - 花与人的收集游戏</title>
+
+  <!-- PWA / 图标 -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#e91e63">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="花名册">
+
   <style>
     :root {
       --primary: #e91e63;
@@ -469,6 +480,146 @@
       color: var(--text-light);
       font-size: 14px;
     }
+
+    /* 添加到主屏幕 引导横幅 */
+    .a2hs-banner {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+      transform: translateY(160%);
+      opacity: 0;
+      transition: transform .38s cubic-bezier(.22,1,.36,1), opacity .38s ease;
+    }
+    .a2hs-banner.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .a2hs-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 13px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+    .a2hs-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .a2hs-text .a2hs-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1f1f1f;
+      line-height: 1.3;
+    }
+    .a2hs-text .a2hs-sub {
+      font-size: 12px;
+      color: #9aa0a6;
+      margin-top: 3px;
+      line-height: 1.3;
+    }
+    .a2hs-cta {
+      flex-shrink: 0;
+      border: none;
+      background: #6f9e76;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .a2hs-cta:active { transform: scale(.96); }
+    .a2hs-close {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: transparent;
+      color: #b9bdc2;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    /* 引导步骤弹窗 */
+    .a2hs-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 2100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+    }
+    .a2hs-modal.show { display: flex; }
+    .a2hs-sheet {
+      width: 100%;
+      max-width: 480px;
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      padding: 22px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+      animation: a2hsUp .32s cubic-bezier(.22,1,.36,1);
+    }
+    @keyframes a2hsUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .a2hs-sheet h3 {
+      font-size: 17px;
+      color: #1f1f1f;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+    .a2hs-sheet .a2hs-sheet-sub {
+      font-size: 12px;
+      color: var(--text-light);
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .a2hs-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+    }
+    .a2hs-step .a2hs-num {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .a2hs-step span { font-size: 14px; color: var(--text); line-height: 1.5; }
+    .a2hs-step b { color: var(--primary-dark); }
+    .a2hs-sheet-btn {
+      width: 100%;
+      margin-top: 18px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 13px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -513,6 +664,27 @@
   </main>
 
   <div class="toast" id="toast"></div>
+
+  <!-- 添加到主屏幕 引导横幅 -->
+  <div class="a2hs-banner" id="a2hsBanner">
+    <img class="a2hs-icon" src="icons/icon-192.png" alt="花名册">
+    <div class="a2hs-text">
+      <div class="a2hs-title">把「花名册」添加到主屏幕</div>
+      <div class="a2hs-sub">像 App 一样使用，一键直达</div>
+    </div>
+    <button class="a2hs-cta" id="a2hsCta">查看方法</button>
+    <button class="a2hs-close" id="a2hsClose" aria-label="关闭">×</button>
+  </div>
+
+  <!-- 引导步骤弹窗 -->
+  <div class="a2hs-modal" id="a2hsModal">
+    <div class="a2hs-sheet">
+      <h3>添加到主屏幕</h3>
+      <div class="a2hs-sheet-sub">添加后即可像 App 一样从桌面直接打开</div>
+      <div id="a2hsSteps"></div>
+      <button class="a2hs-sheet-btn" id="a2hsSheetOk">我知道了</button>
+    </div>
+  </div>
 
   <script>
     // 内嵌数据（解决跨域问题）
@@ -777,6 +949,86 @@
           `}).join('')
         : '<p style="color:var(--text-light);padding:10px;">暂无收藏记录</p>';
     }
+
+    // ===== 添加到主屏幕 引导 =====
+    (function initA2HS() {
+      // 已经在主屏幕（独立窗口）运行时，不展示提示
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+      if (isStandalone) return;
+
+      const banner = document.getElementById('a2hsBanner');
+      const modal = document.getElementById('a2hsModal');
+      const stepsBox = document.getElementById('a2hsSteps');
+      const DISMISS_KEY = 'a2hs_dismissed';
+
+      // 平台检测
+      const ua = navigator.userAgent;
+      const isIOS = /iphone|ipad|ipod/i.test(ua)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /android/i.test(ua);
+
+      // Android/Chrome 原生安装提示
+      let deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+      });
+      // 安装完成后隐藏
+      window.addEventListener('appinstalled', () => hideBanner());
+
+      function stepsHtml() {
+        if (isIOS) {
+          return `
+            <div class="a2hs-step"><span class="a2hs-num">1</span><span>点击底部工具栏的<b>「分享」</b>按钮 <span style="font-size:16px">􀈂</span>（方框带向上箭头）</span></div>
+            <div class="a2hs-step"><span class="a2hs-num">2</span><span>在菜单中选择<b>「添加到主屏幕」</b></span></div>
+            <div class="a2hs-step"><span class="a2hs-num">3</span><span>点击右上角<b>「添加」</b>即可完成</span></div>`;
+        }
+        // Android / 其它
+        return `
+          <div class="a2hs-step"><span class="a2hs-num">1</span><span>点击浏览器右上角的<b>菜单 ⋮</b></span></div>
+          <div class="a2hs-step"><span class="a2hs-num">2</span><span>选择<b>「添加到主屏幕」</b>或<b>「安装应用」</b></span></div>
+          <div class="a2hs-step"><span class="a2hs-num">3</span><span>确认<b>「添加 / 安装」</b>即可完成</span></div>`;
+      }
+
+      function showBanner() {
+        requestAnimationFrame(() => banner.classList.add('show'));
+      }
+      function hideBanner() {
+        banner.classList.remove('show');
+      }
+      function dismiss() {
+        hideBanner();
+        try { localStorage.setItem(DISMISS_KEY, '1'); } catch (e) {}
+      }
+
+      // 查看方法
+      document.getElementById('a2hsCta').addEventListener('click', async () => {
+        // Android 若支持原生安装，直接调起
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          if (outcome === 'accepted') dismiss();
+          return;
+        }
+        stepsBox.innerHTML = stepsHtml();
+        modal.classList.add('show');
+      });
+
+      document.getElementById('a2hsClose').addEventListener('click', dismiss);
+      document.getElementById('a2hsSheetOk').addEventListener('click', () => modal.classList.remove('show'));
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('show');
+      });
+
+      // 用户此前已关闭则不再打扰
+      let dismissed = false;
+      try { dismissed = localStorage.getItem(DISMISS_KEY) === '1'; } catch (e) {}
+      if (!dismissed) {
+        setTimeout(showBanner, 1500);
+      }
+    })();
 
     // 初始化
     loadEmbeddedData();
