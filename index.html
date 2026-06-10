@@ -195,7 +195,8 @@
       right: 0;
       bottom: 0;
       z-index: 1500;
-      padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px));
+      /* 底部留出 home 指示条/操作条空间，键不贴屏幕最底（参考苹果键盘） */
+      padding: 8px 6px calc(env(safe-area-inset-bottom, 0px) + 34px);
       background: #f3eef0;
       border-radius: 16px 16px 0 0;
       box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.10);
@@ -203,7 +204,7 @@
       -webkit-user-select: none;
     }
     /* 给底部固定键盘留出滚动空间，避免遮住结果 */
-    #search-flower { padding-bottom: 190px; }
+    #search-flower { padding-bottom: 200px; }
     .kb-row {
       display: flex;
       justify-content: center;
@@ -979,6 +980,16 @@
       });
     }
     buildPinyinKeyboard();
+
+    // 结果区底部留白 = 键盘实际高度，随设备安全区自适应
+    function syncKeyboardSpacing() {
+      const kb = document.getElementById('pinyinKeyboard');
+      const panel = document.getElementById('search-flower');
+      if (kb && panel) panel.style.paddingBottom = (kb.offsetHeight + 16) + 'px';
+    }
+    syncKeyboardSpacing();
+    window.addEventListener('resize', syncKeyboardSpacing);
+    window.addEventListener('orientationchange', syncKeyboardSpacing);
 
     // 输入框右侧 X 一键清空
     flowerClearBtn.addEventListener('click', () => setFlowerQuery(''));
